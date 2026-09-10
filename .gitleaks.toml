@@ -1,0 +1,8 @@
+title = "TBC Insurance MCP secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated Rust build artifacts"
+paths = ['''(^|/)target/''']

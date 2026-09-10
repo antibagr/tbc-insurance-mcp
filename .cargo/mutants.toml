@@ -1,0 +1,21 @@
+additional_cargo_args = ["--locked"]
+all_features = true
+cap_lints = true
+test_tool = "nextest"
+
+exclude_re = [
+  # Equality at the exact monotonic-clock expiry instant has no stable observable.
+  "replace < with <= in SessionImporter::prepare",
+  # A MAX-byte read still rejects a MAX+1 payload through delimiter or size validation.
+  "replace \\+ with \\* in SessionImporter::handle_connection",
+  # The native macOS Keychain boundary uses an isolated service in integration tests.
+  # Mutating its service selection can write a synthetic credential to the login Keychain.
+  "keychain_service",
+  # Keep synthetic process-test credentials away from the production API.
+  "background_renewal_enabled",
+  # Mutating native UI suppression or explicit authorization could display
+  # login-Keychain dialogs from unattended test processes.
+  "in disable_prompts",
+  "in authorize_session",
+  "in parse_mode",
+]

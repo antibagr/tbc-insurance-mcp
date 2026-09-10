@@ -1,0 +1,52 @@
+name: Bug report
+description: Report a reproducible problem with synthetic data
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove all credentials, personal data, medical information, account references, portal screenshots, and real debug logs. Security vulnerabilities belong in a private advisory.
+  - type: input
+    id: version
+    attributes:
+      label: Server version
+      description: Output reported by get_integration_status or the Git revision.
+      placeholder: 0.5.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system and MCP host.
+      placeholder: macOS, host name and version
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the observed and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction
+      description: Provide the smallest reproduction using fictional values.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics
+      description: Include stable error codes only. Never paste account payloads or credentials.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data-safety confirmation
+      options:
+        - label: I checked this report and every attachment for secrets, personal data, medical information, and real account details.
+          required: true

@@ -1,0 +1,52 @@
+# Credentials and private local configuration
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*.token
+auth.json
+cookies.json
+credentials.*
+secrets.*
+session.json
+sessions/
+*.har
+.mcp.json
+
+# Private runtime state and documents
+staging/
+.pending-operation*
+
+# Python environments, caches, tests, and builds
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+target/
+coverage/
+mutants.out*/
+*.profraw
+fuzz/artifacts/
+fuzz/corpus/
+/tbc-insurance-mcp.json
+/tbc-insurance-mcp-sbom.json
+
+# Downloaded documentation and research corpora
+.research/
+.gitnexus/
+
+# Local editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
+*.log
+tbc-*.jsonl

@@ -1,0 +1,129 @@
+{
+  "contractVersion": "1.0.0",
+  "evidencePolicy": "sanitized contract observations only",
+  "baseUrl": "https://myprofile-api-prod.remoteapi.ge/myprofileportal",
+  "policy": {
+    "allowArbitraryPaths": false,
+    "allowRedirects": false,
+    "allowWrites": true,
+    "allowAutomaticRetries": false,
+    "authentication": "local imported browser session",
+    "maximumResponseBytes": 8388608,
+    "maximumDocumentBytes": 4194304,
+    "reviewRequired": true,
+    "reviewTtlSeconds": 300,
+    "singleUseExecution": true,
+    "executionAuthorization": "MCP host and agent",
+    "readbackRequired": true
+  },
+  "evidence": {
+    "portal": "https://on.tbcinsurance.ge/main",
+    "mainBundle": "https://on.tbcinsurance.ge/main.5aa120a338d6a850.js",
+    "mainBundleSha256": "901c6e428a98b9f8be26ce96374b1eb6503fb3cc40280bed9f7898702953d9a1",
+    "messagesBundle": "https://on.tbcinsurance.ge/205.006c9a951d3a402e.js",
+    "messagesBundleSha256": "01876ecc17cd380c28672ba3481f03e16cb366734adf2416e959d62839206695",
+    "medicalRequestUploadBundle": "https://on.tbcinsurance.ge/847.e2492308939a1157.js",
+    "medicalRequestUploadBundleSha256": "96fee7c2d92b65e58a6c7567c77e2552140f8ec413f9f8021aaf4b4a7e4bae68"
+  },
+  "operations": [
+    {
+      "id": "appointments.create_healthcare_booking",
+      "domainOperation": "book_appointment",
+      "method": "POST",
+      "path": "/api/DoctorBooking/CreateHealthcareServiceBooking",
+      "enabled": true,
+      "exposure": "reviewed_mcp_workflow",
+      "evidence": "mobile_client_schema_and_sanitized_route_observation",
+      "requestNotes": [
+        "Request fields follow the mobile-client schema; a sanitized route observation returned 405 for GET on the POST-only route.",
+        "The implementation submits once and uses the current reservation feed for readback.",
+        "SlotId may be null; exact StartDate, EndDate, DoctorId, HealthcareServiceId and ClinicBranchId are mandatory.",
+        "Patient fields are resolved from a verified policy-to-profile identity link and never accepted from MCP arguments."
+      ]
+    },
+    {
+      "id": "member_requests.upload_document",
+      "domainOperation": "upload_medical_document",
+      "method": "POST",
+      "path": "/api/MedRequest/UploadFile",
+      "enabled": true,
+      "exposure": "internal_workflow_step",
+      "evidence": "current_main_and_medical_request_upload_bundles"
+    },
+    {
+      "id": "member_requests.delete_document",
+      "domainOperation": "delete_unsubmitted_medical_document",
+      "method": "POST",
+      "path": "/api/MedRequest/DeleteFile",
+      "enabled": true,
+      "exposure": "internal_cleanup_step",
+      "evidence": "current_main_and_medical_request_upload_bundles"
+    },
+    {
+      "id": "member_requests.create",
+      "domainOperation": "submit_reimbursement_or_guarantee_request",
+      "method": "POST",
+      "path": "/api/MedRequest/CreateMedRequest",
+      "enabled": true,
+      "exposure": "reviewed_mcp_workflow",
+      "evidence": "current_main_bundle",
+      "requestNotes": [
+        "type 0 is reimbursement and type 1 is guarantee of payment"
+      ]
+    },
+    {
+      "id": "referrals.create_specialist",
+      "domainOperation": "request_specialist_referral",
+      "method": "POST",
+      "path": "/api/RequestAppeal/CreateAppeal",
+      "enabled": true,
+      "exposure": "reviewed_mcp_workflow",
+      "evidence": "current_main_bundle",
+      "requestNotes": [
+        "servicetype 0 is the specialist-consultation workflow"
+      ]
+    },
+    {
+      "id": "referrals.send_documented_request",
+      "domainOperation": "request_diagnostic_or_medication_referral",
+      "method": "POST",
+      "path": "/api/RequestAppeal/SendAppealsEmail",
+      "enabled": true,
+      "exposure": "reviewed_mcp_workflow",
+      "evidence": "current_main_bundle",
+      "requestNotes": [
+        "servicetype 1 is diagnostic-service research and servicetype 2 is medication"
+      ]
+    },
+    {
+      "id": "inbox.upload_attachment",
+      "domainOperation": "upload_message_attachment",
+      "method": "POST",
+      "path": "/api/Notification/UploadFile",
+      "enabled": true,
+      "exposure": "internal_workflow_step",
+      "evidence": "current_main_and_messages_bundles"
+    },
+    {
+      "id": "inbox.delete_attachment",
+      "domainOperation": "delete_unsubmitted_message_attachment",
+      "method": "POST",
+      "path": "/api/Notification/DeleteFile",
+      "enabled": true,
+      "exposure": "internal_cleanup_step",
+      "evidence": "current_main_and_messages_bundles"
+    },
+    {
+      "id": "inbox.reply",
+      "domainOperation": "reply_to_insurer_message",
+      "method": "POST",
+      "path": "/api/Notification/SendMessageWithFiles",
+      "enabled": true,
+      "exposure": "reviewed_mcp_workflow",
+      "evidence": "current_main_and_messages_bundles",
+      "requestNotes": [
+        "messageId is serialized as a string by the current messages workflow"
+      ]
+    }
+  ]
+}
