@@ -1,0 +1,20 @@
+[package]
+name = "tbc-insurance-mcp-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[[bin]]
+bench = false
+doc = false
+name = "api_contract"
+path = "fuzz_targets/api_contract.rs"
+test = false
+
+[dependencies]
+libfuzzer-sys = "=0.4.13"
+serde_json = "=1.0.151"
+tbc-insurance-mcp = { path = "..", version = "=0.5.0" }

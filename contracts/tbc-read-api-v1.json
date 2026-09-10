@@ -1,0 +1,335 @@
+{
+  "contractVersion": "1.0.0",
+  "evidencePolicy": "sanitized contract observations only",
+  "baseUrl": "https://myprofile-api-prod.remoteapi.ge/myprofileportal",
+  "policy": {
+    "allowArbitraryPaths": false,
+    "allowRedirects": false,
+    "allowWrites": false,
+    "authentication": "local imported browser session",
+    "maximumResponseBytes": 8388608,
+    "maximumPageSize": 100
+  },
+  "evidence": {
+    "portal": "https://on.tbcinsurance.ge/main",
+    "mainBundle": "https://on.tbcinsurance.ge/main.5aa120a338d6a850.js",
+    "medicalBundle": "https://on.tbcinsurance.ge/282.2695de098823d0ac.js",
+    "messagesBundle": "https://on.tbcinsurance.ge/205.006c9a951d3a402e.js"
+  },
+  "operations": [
+    {
+      "id": "account.profile",
+      "domainOperation": "read_member_account",
+      "method": "GET",
+      "path": "/api/account/GetUserProfile",
+      "enabled": false,
+      "exposure": "internal_session_verification_only",
+      "evidence": "current_main_bundle"
+    },
+    {
+      "id": "coverage.list_policies",
+      "domainOperation": "list_health_policies",
+      "method": "GET",
+      "path": "/api/Medical/GetPolicies",
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_portal_bundles_and_sanitized_contract_observation",
+      "responseNotes": [
+        "top-level array",
+        "polId is the opaque policy identifier",
+        "insObject stays private except for its last four characters",
+        "toFromDate and toToDate are normalized to ISO calendar dates"
+      ]
+    },
+    {
+      "id": "coverage.get_member_summary",
+      "domainOperation": "get_coverage_summary",
+      "method": "GET",
+      "path": "/api/Medical/GetInsuredInfo",
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_portal_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "accountsList.accunt is exposed only as its last four characters",
+        "member identity and contact fields stay private",
+        "familyDoctor is normalized to provider-facing details"
+      ]
+    },
+    {
+      "id": "coverage.list_members",
+      "domainOperation": "list_covered_members",
+      "method": "POST",
+      "path": "/api/MedRequest/GetInsuredPersons",
+      "body": {},
+      "enabled": false,
+      "exposure": "retired_contract_observation",
+      "evidence": "public_portal_bundle_references_endpoint; sanitized_observation_returned_404"
+    },
+    {
+      "id": "coverage.list_benefits",
+      "domainOperation": "list_coverage_benefits",
+      "method": "GET",
+      "path": "/api/Medical/GetPolicyRisks/{policyId}",
+      "pathParameters": ["policyId"],
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_medical_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "norate is presented as TBC's share of eligible cost; it has one trailing % and a 0-100 integer value",
+        "Zero, dash, and empty rates remain unspecified; the portal renders zero-rate category rows with a dash",
+        "Numeric amount values have no verified unit; preserve decimal text without assigning GEL or a service count",
+        "The amount sentinel - corresponds to an unlimited benefit in the current policy screen"
+      ]
+    },
+    {
+      "id": "claims.list_for_benefit",
+      "domainOperation": "list_medical_claims",
+      "method": "GET",
+      "path": "/api/Medical/GetClaimsByRisk/{policyId}/{benefitId}",
+      "pathParameters": ["policyId", "benefitId"],
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_medical_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "top-level array with rsid, date, providerName, riskName, servicePriceSum, and insurerAmount"
+      ]
+    },
+    {
+      "id": "claims.get",
+      "domainOperation": "get_medical_claim",
+      "method": "GET",
+      "path": "/api/Medical/GetClaimDetails/{claimId}",
+      "pathParameters": ["claimId"],
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_medical_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "top-level array with name, count, servicePrice, and insurerAmount"
+      ]
+    },
+    {
+      "id": "requests.list",
+      "domainOperation": "list_member_requests",
+      "method": "GET",
+      "path": "/api/MedRequest/GetListByInsurerPN",
+      "queryParameters": {
+        "page": {"type": "integer", "minimum": 1},
+        "pageSize": {"type": "integer", "minimum": 1, "maximum": 100}
+      },
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_portal_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "medRequests contains typed reimbursement and guarantee-of-payment summaries",
+        "national identifiers, contact fields, account numbers, and filenames stay private"
+      ]
+    },
+    {
+      "id": "requests.get",
+      "domainOperation": "get_member_request",
+      "method": "GET",
+      "path": "/api/MedRequest/GetMedRequestDetails/{requestId}",
+      "pathParameters": ["requestId"],
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_portal_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "member and insurer comments are bounded member-facing text",
+        "attachment filenames and pre-signed URLs stay private"
+      ]
+    },
+    {
+      "id": "referrals.list_providers",
+      "domainOperation": "list_referral_providers",
+      "method": "POST",
+      "path": "/api/RequestAppeal/GetProviders",
+      "body": {},
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "sanitized_contract_observation; public_portal_bundle_declares_stale_GET",
+      "responseNotes": [
+        "the endpoint advertises Allow: POST and rejects GET with 405",
+        "top-level array with clinicId and name",
+        "addresses, coordinates, and phone fields stay private"
+      ]
+    },
+    {
+      "id": "referrals.list_service_options",
+      "domainOperation": "list_referral_service_options",
+      "method": "POST",
+      "path": "/api/RequestAppeal/GetProviderAppeals",
+      "body": {"clinicId": "{providerId}"},
+      "bodyParameters": ["providerId"],
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_portal_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "top-level array with serviceId and serviceName"
+      ]
+    },
+    {
+      "id": "referrals.list",
+      "domainOperation": "list_medical_referrals",
+      "method": "GET",
+      "path": "/api/RequestAppeal/GetAppeals",
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_portal_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "top-level array",
+        "appealType maps to specialist, diagnostic, medication, or explicit unknown",
+        "member and policyholder identifiers stay private"
+      ]
+    },
+    {
+      "id": "locations.list_cities",
+      "domainOperation": "list_service_cities",
+      "method": "GET",
+      "path": "/api/DoctorBooking/GetCities",
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_portal_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "top-level array with citiesId and citiesName"
+      ]
+    },
+    {
+      "id": "providers.list_network_locations",
+      "domainOperation": "list_network_provider_locations",
+      "method": "POST",
+      "path": "/api/MobileHealth/GetAllProviders",
+      "body": {"PolicyId": "{policyId}", "RiskId": "{benefitId?}"},
+      "bodyParameters": ["policyId", "benefitId?"],
+      "enabled": false,
+      "exposure": "pending_current_fixture",
+      "evidence": "unimplemented_contract_candidate"
+    },
+    {
+      "id": "appointments.list_bookings",
+      "domainOperation": "list_appointment_bookings",
+      "method": "GET",
+      "path": "/api/Mobile/GetNotifications",
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "sanitized_contract_observation_and_mobile_client_schema"
+    },
+    {
+      "id": "appointments.list_services",
+      "domainOperation": "list_bookable_services",
+      "method": "GET",
+      "path": "/api/DoctorBooking/GetHealthcareServices",
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "sanitized_contract_observation",
+      "responseNotes": ["healthcareServices array with numeric id and name"]
+    },
+    {
+      "id": "appointments.list_locations",
+      "domainOperation": "list_provider_locations",
+      "method": "POST",
+      "path": "/api/DoctorBooking/GetClinicBranches",
+      "body": {"HealthcareServiceId": "{serviceId}"},
+      "bodyParameters": ["serviceId"],
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "sanitized_contract_observation",
+      "responseNotes": ["clinicBranches array; booking IDs are distinct from referral-provider IDs"]
+    },
+    {
+      "id": "appointments.list_clinicians",
+      "domainOperation": "list_available_clinicians",
+      "method": "POST",
+      "path": "/api/DoctorBooking/GetHealthcareServiceDoctors",
+      "body": {
+        "HealthcareServiceId": "{serviceId}",
+        "ClinicBranchId": "{locationId}",
+        "exactDate": "{date}"
+      },
+      "bodyParameters": ["serviceId", "locationId", "date"],
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "sanitized_contract_observation",
+      "responseNotes": ["doctors array; exactDate affects results; clinicBranchId must match query"]
+    },
+    {
+      "id": "appointments.list_slots",
+      "domainOperation": "list_appointment_slots",
+      "method": "POST",
+      "path": "/api/DoctorBooking/GetDoctorSlots",
+      "body": {
+        "HealthcareServiceId": "{serviceId}",
+        "ClinicBranchId": "{locationId}",
+        "DoctorId": "{clinicianId}",
+        "FromDate": "{fromDate}",
+        "ToDate": "{toDate}"
+      },
+      "bodyParameters": [
+        "serviceId",
+        "locationId",
+        "clinicianId",
+        "fromDate",
+        "toDate"
+      ],
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "sanitized_contract_observation",
+      "responseNotes": [
+        "slots array; id may be null; preserve startDate/endDate UTC offsets",
+        "doctorId must match query; query service and branch accompany each result",
+        "read-only availability establishes neither coverage nor reservation"
+      ]
+    },
+    {
+      "id": "inbox.list",
+      "domainOperation": "list_inbox_messages",
+      "method": "GET",
+      "path": "/api/Notification/GetMessagesByClientId",
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_portal_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "top-level array of minimized message summaries"
+      ]
+    },
+    {
+      "id": "inbox.unread_count",
+      "domainOperation": "count_unread_messages",
+      "method": "GET",
+      "path": "/api/Notification/GetUnreadMessagesCount",
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_portal_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "non-negative integer"
+      ]
+    },
+    {
+      "id": "inbox.get",
+      "domainOperation": "get_inbox_message",
+      "method": "GET",
+      "path": "/api/Notification/GetMessageDetails/{messageId}",
+      "pathParameters": ["messageId"],
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_portal_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "returns bounded member-facing subject and message text",
+        "client and object identifiers stay private"
+      ]
+    },
+    {
+      "id": "inbox.list_thread",
+      "domainOperation": "list_message_thread",
+      "method": "GET",
+      "path": "/api/Notification/GetMessagesByParentId/{parentMessageId}",
+      "pathParameters": ["parentMessageId"],
+      "enabled": true,
+      "exposure": "mcp_tool",
+      "evidence": "public_portal_bundle_and_sanitized_contract_observation",
+      "responseNotes": [
+        "top-level array",
+        "direction 1 is insurer and direction 2 is member"
+      ]
+    }
+  ]
+}

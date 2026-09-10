@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>dev.antibagr.tbc-insurance-mcp.session-vault</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>INSTALLATION_PATH_REQUIRED</string>
+    </array>
+    <key>MachServices</key>
+    <dict>
+        <key>dev.antibagr.tbc-insurance-mcp.session-vault</key>
+        <true/>
+    </dict>
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>

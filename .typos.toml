@@ -1,0 +1,6 @@
+[default.extend-identifiers]
+accunt = "accunt"
+clientPn = "clientPn"
+GetListByInsurerPN = "GetListByInsurerPN"
+insuredPN = "insuredPN"
+startTimeFormated = "startTimeFormated"

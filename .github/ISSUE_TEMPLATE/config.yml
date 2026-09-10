@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/antibagr/tbc-insurance-mcp/security/advisories/new
+    about: Share vulnerability details privately.
+  - name: TBC Insurance account support
+    url: https://tbcinsurance.ge/en/contact
+    about: Contact the insurer about accounts, policies, coverage, claims, and appointments.

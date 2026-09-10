@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose a focused improvement
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the user need with synthetic examples. New upstream endpoints and state-changing workflows require an explicit security and readback design.
+  - type: textarea
+    id: need
+    attributes:
+      label: User need
+      description: What account workflow should become safer or easier?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe inputs, outputs, and limits.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Privacy and safety considerations
+      description: Explain sensitive fields, authorization, replay, and ambiguous-outcome handling.
+    validations:
+      required: true
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Data-safety confirmation
+      options:
+        - label: This proposal contains only synthetic data and no credentials or real account information.
+          required: true

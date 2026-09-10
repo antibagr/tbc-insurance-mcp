@@ -1,0 +1,281 @@
+name: quality
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+  RUSTDOCFLAGS: "-D warnings"
+
+jobs:
+  fast:
+    name: Fast quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal --component clippy --component rust-analyzer --component rustfmt
+
+      - name: Select the pinned Rust toolchain
+        run: rustup default 1.98.0
+
+      - name: Install pinned release tools
+        uses: taiki-e/install-action@b6ff580856c41316412a0b9b60540fbc6f8c82cc # v2.86.7
+        with:
+          fallback: none
+          tool: >-
+            cargo-audit@0.22.2,
+            cargo-deny@0.20.2,
+            cargo-nextest@0.9.143,
+            cargo-shear@1.13.4,
+            tombi@1.4.1,
+            typos@1.49.0,
+            zizmor@1.29.0
+
+      - name: Install pinned Rust source tools
+        run: cargo install --locked --version 0.2.60 rumdl
+
+      - name: Install pinned actionlint source
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+
+      - name: Install pinned Gitleaks source
+        run: go install github.com/zricethezav/gitleaks/v8@v8.30.1
+
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check fuzz-target formatting
+        run: cargo fmt --manifest-path fuzz/Cargo.toml -- --check
+
+      - name: Check every Rust target
+        run: cargo check --locked --all-targets --all-features
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Run Rust Analyzer diagnostics
+        run: rust-analyzer diagnostics . --severity warning
+
+      - name: Build public documentation
+        run: cargo doc --locked --no-deps --all-features
+
+      - name: Run documentation tests
+        run: cargo test --locked --doc --all-features
+
+      - name: Run the adversarial test suite
+        run: cargo nextest run --locked --all-features
+
+      - name: Check dependency declarations
+        run: cargo shear
+
+      - name: Check spelling
+        run: typos
+
+      - name: Check Markdown
+        run: rumdl check .
+
+      - name: Check TOML semantics
+        run: tombi lint
+
+      - name: Check TOML formatting
+        run: tombi format --check
+
+      - name: Check JSON contracts
+        run: jq empty contracts/tbc-read-api-v1.json contracts/tbc-write-api-v1.json
+
+      - name: Enforce production dependency policy
+        run: cargo deny --locked check
+
+      - name: Enforce fuzz dependency policy
+        run: cargo deny --manifest-path fuzz/Cargo.toml --config fuzz/deny.toml --locked check
+
+      - name: Audit production dependencies
+        run: cargo audit
+
+      - name: Audit fuzz dependencies
+        run: cargo audit --file fuzz/Cargo.lock
+
+      - name: Scan Git history for secrets
+        run: gitleaks git --redact --config .gitleaks.toml --no-banner
+
+      - name: Scan the working tree for secrets
+        run: gitleaks dir . --redact --config .gitleaks.toml --no-banner
+
+      - name: Check workflow syntax
+        run: actionlint
+
+      - name: Audit workflow security
+        run: zizmor .github/workflows/quality.yml
+
+  deep:
+    name: Deep and release gates
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install the pinned stable toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal --component clippy --component rust-analyzer --component rustfmt
+
+      - name: Select the pinned stable toolchain
+        run: rustup default 1.98.0
+
+      - name: Install the pinned verification toolchain
+        run: rustup toolchain install nightly-2026-08-25 --profile minimal --component llvm-tools-preview --component miri --component rust-src
+
+      - name: Install pinned release tools
+        uses: taiki-e/install-action@b6ff580856c41316412a0b9b60540fbc6f8c82cc # v2.86.7
+        with:
+          fallback: none
+          tool: >-
+            cargo-audit@0.22.2,
+            cargo-auditable@0.7.5,
+            cargo-careful@0.4.10,
+            cargo-cyclonedx@0.5.9,
+            cargo-hack@0.6.45,
+            cargo-llvm-cov@0.9.0,
+            cargo-mutants@27.1.0,
+            cargo-nextest@0.9.143
+
+      - name: Install the pinned fuzz runner
+        run: cargo install --locked --version 0.13.2 cargo-fuzz
+
+      - name: Enforce coverage thresholds
+        run: cargo +nightly-2026-08-25 llvm-cov nextest --locked --all-features --branch --fail-under-functions 80 --fail-under-lines 85 --fail-under-regions 80
+
+      - name: Test the feature powerset
+        run: cargo hack check --locked --feature-powerset --all-targets
+
+      - name: Run extra undefined-behavior checks
+        run: cargo +nightly-2026-08-25 careful test --locked --all-features
+
+      - name: Run Miri on endpoint contracts
+        run: "cargo +nightly-2026-08-25 miri test --lib --locked api::tests::"
+
+      - name: Run Miri on wire normalization
+        run: "cargo +nightly-2026-08-25 miri test --lib --locked api::wire::tests::"
+
+      - name: Run Miri on MCP contracts
+        run: "cargo +nightly-2026-08-25 miri test --lib --locked mcp::tests::"
+
+      - name: Run Miri on pure transport framing
+        run: "cargo +nightly-2026-08-25 miri test --lib --locked mcp::transport::tests:: -- --skip closing_transport_removes_its_writer"
+
+      - name: Run Miri on constant-time comparison
+        run: cargo +nightly-2026-08-25 miri test --lib --locked secret_comparison_rejects_different_lengths_and_values
+
+      - name: Run Miri on sanitized diagnostic codes
+        run: cargo +nightly-2026-08-25 miri test --lib --locked diagnostic_codes_are_stable_and_sanitized
+
+      - name: Check concurrent reviews with ThreadSanitizer
+        env:
+          RUSTDOCFLAGS: -Zsanitizer=thread
+          RUSTFLAGS: -Zsanitizer=thread
+        run: cargo +nightly-2026-08-25 test -Z build-std --target x86_64-unknown-linux-gnu --lib --locked concurrent_reviews_never_exceed_the_pending_limit
+
+      - name: Run the sanitizer-backed fuzz target
+        run: cargo +nightly-2026-08-25 fuzz run api_contract -- -max_total_time=60
+
+      - name: Run the normalization benchmark
+        run: cargo bench --locked --bench normalization
+
+      - name: Build an auditable release binary
+        run: cargo auditable build --release --locked
+
+      - name: Audit the compiled release binary
+        run: cargo audit bin target/release/tbc-insurance-mcp
+
+      - name: Smoke-test local installation
+        run: cargo install --locked --path . --root target/install-smoke
+
+      - name: Generate a CycloneDX SBOM
+        run: cargo cyclonedx --format json --spec-version 1.5 --all-features --target all --override-filename tbc-insurance-mcp
+
+      - name: Validate the CycloneDX SBOM
+        run: jq empty tbc-insurance-mcp.json
+
+      - name: Report release binary size
+        run: stat --format=%s target/release/tbc-insurance-mcp
+
+  session-vault:
+    name: Credential-service gates (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal --component clippy --component rustfmt
+
+      - name: Check credential-service formatting
+        run: cargo fmt --manifest-path crates/session-vault/Cargo.toml -- --check
+
+      - name: Check credential-service lints and every target
+        run: cargo clippy --locked --manifest-path crates/session-vault/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Test credential isolation and compare-and-swap boundaries
+        run: cargo test --locked --manifest-path crates/session-vault/Cargo.toml --all-targets
+
+      - name: Build credential-service documentation
+        run: cargo doc --locked --manifest-path crates/session-vault/Cargo.toml --no-deps
+
+      - name: Test the MCP on macOS
+        if: runner.os == 'macOS'
+        run: cargo test --locked --all-targets
+
+  mutation:
+    name: Mutation gate
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal
+
+      - name: Select the pinned Rust toolchain
+        run: rustup default 1.98.0
+
+      - name: Install the pinned mutation runner
+        uses: taiki-e/install-action@b6ff580856c41316412a0b9b60540fbc6f8c82cc # v2.86.7
+        with:
+          fallback: none
+          tool: >-
+            cargo-mutants@27.1.0,
+            cargo-nextest@0.9.143
+
+      - name: Run mutation testing
+        run: cargo mutants --jobs 4 --timeout 20
