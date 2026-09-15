@@ -22,7 +22,7 @@ base64 = "=0.23.1"
 futures = "=0.3.34"
 getrandom = "=0.4.3"
 reqwest = { version = "=0.13.5", default-features = false, features = ["json", "rustls", "stream"] }
-rmcp = { version = "=3.2.0", default-features = false, features = ["macros", "server"] }
+rmcp = { version = "=3.3.0", default-features = false, features = ["macros", "server"] }
 schemars = "=1.2.2"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
@@ -35,7 +35,7 @@ zeroize = { version = "=1.9.0", features = ["serde"] }
 
 [dev-dependencies]
 criterion = "=0.8.2"
-rmcp = { version = "=3.2.0", default-features = false, features = ["client", "elicitation", "transport-async-rw"] }
+rmcp = { version = "=3.3.0", default-features = false, features = ["client", "elicitation", "transport-async-rw"] }
 tokio = { version = "=1.53.1", features = ["io-util", "process", "rt-multi-thread", "test-util", "time"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
